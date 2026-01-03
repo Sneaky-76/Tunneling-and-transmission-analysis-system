@@ -1,3 +1,0 @@
-Prerequisites: both g++ and make need to be installed
-OS: Linux
-Command: ./clientSide <server_ip>
