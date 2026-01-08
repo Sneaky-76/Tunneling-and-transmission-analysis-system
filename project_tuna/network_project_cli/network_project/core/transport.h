@@ -21,6 +21,7 @@ public:
 	virtual void close_connection() = 0;
 
 	virtual void update_rtt_value(double rtt_val) = 0;
+	virtual void update_mtu() = 0;
 	virtual Telemetry get_stats() = 0;
 };
 

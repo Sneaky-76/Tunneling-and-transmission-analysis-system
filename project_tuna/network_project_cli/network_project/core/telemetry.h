@@ -12,6 +12,8 @@ class Telemetry{
     double rtt_ms;
     double jitter;
     int total_packets;
+    int mtu;
+    int packet_loss;
     /*unique_ptr<Telemetry> telemetry;
 
     public:

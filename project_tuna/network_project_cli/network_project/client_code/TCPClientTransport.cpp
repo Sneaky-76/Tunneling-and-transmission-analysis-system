@@ -12,6 +12,16 @@ TCPClientTransport::TCPClientTransport() : sockfd(-1) { stats.rtt_ms = 0.0, stat
 TCPClientTransport::TCPClientTransport(int existing_fd) : sockfd(existing_fd) {}
 TCPClientTransport::~TCPClientTransport() { close_connection(); }
 
+void TCPClientTransport::update_mtu(){
+        int mtu_val=0;
+        socklen_t mtu_length = sizeof(mtu_val);
+        if(getsockopt(sockfd, IPPROTO_IP, IP_MTU, &mtu_val, &mtu_length) == 0){
+                stats.mtu = mtu_val;
+        }else{
+                perror("Obtaining MTU have failed.");
+        }
+}  
+
 bool TCPClientTransport::connectTo(const string& addr, uint16_t port){
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if(sockfd < 0){
@@ -37,8 +47,11 @@ bool TCPClientTransport::connectTo(const string& addr, uint16_t port){
 }
 
 ssize_t TCPClientTransport::send(const vector<uint8_t>& data){
-	return ::send(sockfd, data.data(), data.size(), 0);	//send requires const void* data, which
-                                                                //.data() provides (pointer because of vector
+	
+	update_mtu();
+	return ::send(sockfd, data.data(), data.size(), 0);     //send requires const void* data, which
+                                                                        //.data() provides (pointer because of vector
+
 }
 
 ssize_t TCPClientTransport::recieve(vector<uint8_t>& data){

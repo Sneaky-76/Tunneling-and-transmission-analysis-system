@@ -10,6 +10,15 @@ SCTPClientTransport::SCTPClientTransport() : sockfd(-1) {}
 SCTPClientTransport::SCTPClientTransport(int existing_fd) : sockfd(existing_fd) {}
 SCTPClientTransport::~SCTPClientTransport() { close_connection(); }
 
+void SCTPClientTransport::update_mtu(){ 
+
+        struct sctp_status status{};
+        socklen_t len = sizeof(status);
+
+        if(getsockopt(sockfd, IPPROTO_SCTP, SCTP_STATUS, &status, &len) == 0) 
+                stats.mtu = status.sstat_primary.spinfo_mtu;
+}
+
 bool SCTPClientTransport::connectTo(const string& addr, uint16_t port) {
     // Tworzymy gniazdo SCTP (One-to-One style)
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP);
@@ -24,10 +33,15 @@ bool SCTPClientTransport::connectTo(const string& addr, uint16_t port) {
         perror("SCTP Connect error");
         return false;
     }
+
     return true;
 }
 
+
+
 ssize_t SCTPClientTransport::send(const vector<uint8_t>& data) {
+	
+	update_mtu();
     return ::send(sockfd, data.data(), data.size(), 0);
 }
 
@@ -55,3 +69,4 @@ void SCTPClientTransport::update_rtt_value(double rtt_val){
 Telemetry SCTPClientTransport::get_stats(){
 	return stats;
 }
+

@@ -20,6 +20,7 @@ public:
     void close_connection() override;
 
     void update_rtt_value(double rtt_val) override;
-    Telemetry get_stats() override;
+    void update_mtu() override;
+	Telemetry get_stats() override;
 };
 #endif

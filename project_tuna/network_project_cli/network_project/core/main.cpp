@@ -67,6 +67,7 @@ int main(int argc, char* argv[]) {
 		Telemetry stats = active_transport->get_stats();
 		cout << "Measured RTT: " << stats.rtt_ms << " ms\n";
 		cout << "Measured jitter: " << stats.jitter << " ms\n";
+		cout << "MTU: " << stats.mtu << " bytes\n";
 	}
     }	//while(1)
     }
