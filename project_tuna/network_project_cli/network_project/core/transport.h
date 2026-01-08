@@ -12,7 +12,7 @@ using namespace std;
 //using std::string, std::int, std::vector; cant use it like that for some reason
 
 class Transport{
-
+//probably better tu put "Telemetry stats" here under protected
 public:
 	//virtual ~Transport() = default;
 	virtual bool connectTo(const string& addr, uint16_t port) = 0;
