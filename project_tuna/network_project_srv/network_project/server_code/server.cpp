@@ -26,6 +26,7 @@ bool Server::initialize_transmission(const string& addr, uint16_t port){
 
 void Server::handle_client_session(unique_ptr<Transport> cli_conn){
 	//OODB auth here probably
+	while(1){
 	syslog(LOG_INFO,"New client connected. Authentication . . .");
 	vector<uint8_t> buff;
 	
@@ -43,6 +44,7 @@ void Server::handle_client_session(unique_ptr<Transport> cli_conn){
 		syslog(LOG_DEBUG, "Recieved %zd bytes.", bytes);		//%z for ssize_t, %d for decimal
 		//cli_conn->send(buff);	//echoing data back
 	}
+	}//while(1)
 	cli_conn->close_connection();
 }
 
