@@ -2,6 +2,7 @@
 #define CLIENT_H
 
 #include "../core/transport.h"	//first common folder
+#include "TrafficGenerator.h"
 #include <vector>
 #include <memory>		//where unique_ptr resides
 using namespace std;
@@ -10,6 +11,9 @@ class Client{
 
 private:
 	unique_ptr<Transport> transport;
+	TrafficGenerator bg_traffic;
+
+	string server_ip;
 public:
 	Client(unique_ptr<Transport> transport);
 	

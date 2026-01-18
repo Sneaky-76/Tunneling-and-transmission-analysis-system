@@ -7,7 +7,8 @@ SRCS = main.cpp \
        ../server_code/TCPServerTransport.cpp \
        ../server_code/SCTPServerTransport.cpp \
        ../client_code/TCPClientTransport.cpp \
-       ../client_code/SCTPClientTransport.cpp
+       ../client_code/SCTPClientTransport.cpp \
+       ../server_code/TrafficSink.cpp
 
 TARGET = serverSide
 
