@@ -5,7 +5,8 @@ LIBS = -lpthread -lsctp
 SRCS = main.cpp \
        ../client_code/client.cpp \
        ../client_code/TCPClientTransport.cpp \
-       ../client_code/SCTPClientTransport.cpp
+       ../client_code/SCTPClientTransport.cpp \
+       ../client_code/TrafficGenerator.cpp
 
 TARGET = clientSide
 

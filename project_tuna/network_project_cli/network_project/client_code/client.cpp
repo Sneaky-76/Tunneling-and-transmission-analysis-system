@@ -8,12 +8,38 @@ using namespace std;
 Client::Client(unique_ptr<Transport> t) : transport(move(t)) {}
 
 bool Client::initialize_transmission(const string& addr, uint16_t port){
-	return transport->connectTo(addr, port);
-}
+    // Address storage for later usage
+    this->server_ip = addr; 
 
+    // Attempt to connect to the server
+    if(!transport->connectTo(addr, port)){
+        return false;
+    }
+
+    // --- BACKGROUND TRAFFIC SECTION ---
+    
+    char run_bg;
+    cout << "Start background traffic generator? (y/n): ";
+    cin >> run_bg;
+    cin.ignore(); // Input buffer clearing
+
+    if(run_bg == 'y' || run_bg == 'Y') {
+        cout << "[Client] Starting UDP flood to " << this->server_ip << ":9999" << endl;
+        
+        // Setup using the stored server IP
+        if(bg_traffic.setup(this->server_ip, 9999)) {
+            // Start generation: 1400 bytes packet size, 0ms interval (max speed)
+            bg_traffic.start(1400, 0); 
+        }
+    }
+    // --------------------------------------------------
+
+    return true;
+}
 bool Client::start_transmission(){
 
 //while(1){
+
 	string input;
 	cout << "Enter the message (or type q to quit): \n";
 	getline(cin, input);
