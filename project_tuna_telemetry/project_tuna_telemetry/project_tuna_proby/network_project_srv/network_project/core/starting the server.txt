@@ -1,0 +1,3 @@
+Prerequisites: both g++ and make need to be installed
+OS: Linux
+Command: sudo ./serverSide <protocol>
