@@ -9,7 +9,7 @@ SRCS = main.cpp \
        ../client_code/TCPClientTransport.cpp \
        ../client_code/SCTPClientTransport.cpp \
        ../client_code/UDPClientTransport.cpp \
-       ../client_code/UDPServerTransport.cpp 
+       ../server_code/UDPServerTransport.cpp 
 
 TARGET = serverSide
 

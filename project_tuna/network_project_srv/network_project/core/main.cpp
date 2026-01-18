@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     else if (proto == "udp") {
         cout << "[Server Main] Turning on UDP server...\n";
         server_backend = make_unique<UDPServerTransport>();
-
+    }
     else {
         cerr << "[Error] Unknown protocol: " << proto << endl;
         return 1;
