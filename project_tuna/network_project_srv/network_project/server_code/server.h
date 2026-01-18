@@ -2,6 +2,7 @@
 #define SERVER_H
 
 #include "../core/ServerTransport.h"
+#include "TrafficSink.h"
 #include <memory>
 #include <vector>
 #include <string>
@@ -10,6 +11,7 @@ using namespace std;
 class Server{
 private:
 	unique_ptr<ServerTransport> transport;
+    TrafficSink bg_sink; // Added instance of TrafficSink
 	bool is_running;
 	void handle_client_session(unique_ptr<Transport> cli_conn);
 public:

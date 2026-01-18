@@ -51,6 +51,9 @@ void Server::handle_client_session(unique_ptr<Transport> cli_conn){
 }
 
 void Server::start_transmission(){
+	// Initialization of the background traffic sink on port 9999
+    bg_sink.start(9999);
+
 	cout << "Server running and awaiting for connection . . .\n";
 
 	if (auto* udp = dynamic_cast<UDPServerTransport*>(transport.get())) {
