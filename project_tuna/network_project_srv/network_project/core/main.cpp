@@ -6,8 +6,7 @@
 #include "../server_code/server.h"
 #include "../server_code/TCPServerTransport.h"
 #include "../server_code/SCTPServerTransport.h"
-// In the future, when UDP implementation is ready, uncomment the line below:
-// #include "../server_code/UDPServerTransport.h"
+#include "../server_code/UDPServerTransport.h"
 
 using namespace std;
 
@@ -29,6 +28,10 @@ int main(int argc, char* argv[]) {
         cout << "[Server Main] Turning on SCTP server...\n";
         server_backend = make_unique<SCTPServerTransport>();
     }
+    else if (proto == "udp") {
+        cout << "[Server Main] Turning on UDP server...\n";
+        server_backend = make_unique<UDPServerTransport>();
+
     else {
         cerr << "[Error] Unknown protocol: " << proto << endl;
         return 1;

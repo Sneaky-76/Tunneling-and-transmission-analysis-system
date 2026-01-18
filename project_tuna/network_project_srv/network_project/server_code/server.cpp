@@ -4,6 +4,8 @@
 #include <iostream>
 #include <thread>
 #include <syslog.h>
+#include "UDPServerTransport.h"
+#include <arpa/inet.h>
 
 Server::Server(unique_ptr<ServerTransport> st) : transport(move(st)), is_running(false) {
 	openlog("NetworkAnalyzerServ", LOG_PID, LOG_USER);
@@ -50,6 +52,25 @@ void Server::handle_client_session(unique_ptr<Transport> cli_conn){
 
 void Server::start_transmission(){
 	cout << "Server running and awaiting for connection . . .\n";
+
+	if (auto* udp = dynamic_cast<UDPServerTransport*>(transport.get())) {
+
+        vector<uint8_t> buffer;
+        sockaddr_in from{};
+
+        while (is_running) {
+            ssize_t n = udp->receiveFrom(buffer, from);
+            if (n <= 0) continue;
+
+            cout << "[UDP] Packet from "
+                 << inet_ntoa(from.sin_addr)
+                 << ":" << ntohs(from.sin_port)
+                 << " size=" << n << endl;
+
+            udp->sendTo(buffer, from); 
+        }
+        return;
+    }
 	
 	while(is_running){
 		unique_ptr<Transport> client = transport->acceptClient();

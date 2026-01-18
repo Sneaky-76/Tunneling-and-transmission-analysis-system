@@ -7,8 +7,7 @@
 #include "../client_code/client.h"
 #include "../client_code/TCPClientTransport.h"
 #include "../client_code/SCTPClientTransport.h"
-// When UDP implementation is ready, uncomment the line below:
-// #include "../client_code/UDPClientTransport.h"
+#include "../client_code/UDPClientTransport.h"
 
 using namespace std;
 
@@ -37,9 +36,9 @@ int main(int argc, char* argv[]) {
         cout << "[Main] Chosen protocol SCTP.\n";
         transport_backend = make_unique<SCTPClientTransport>();
     }
-    // else if (proto == "udp") {
-    //     transport_backend = make_unique<UDPClientTransport>();
-    // }
+    else if (proto == "udp") {
+        transport_backend = make_unique<UDPClientTransport>();
+    }
     else {
         cerr << "[Error] Unknown protocol: " << proto << "\n";
         return 1;
