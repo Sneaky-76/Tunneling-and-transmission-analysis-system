@@ -4,10 +4,14 @@
 #include <unistd.h>
 #include <cstdio>
 #include <netinet/sctp.h> // Biblioteka SCTP
-
+#include <vector>
 SCTPClientTransport::SCTPClientTransport() : sockfd(-1) {}
 SCTPClientTransport::SCTPClientTransport(int existing_fd) : sockfd(existing_fd) {}
 SCTPClientTransport::~SCTPClientTransport() { close_connection(); }
+
+std::vector<uint8_t> SCTPClientTransport::encrypt(const std::vector<uint8_t>& data){return data;};
+std::vector<uint8_t> SCTPClientTransport::decrypt(const std::vector<uint8_t>& data){return data;};
+
 
 bool SCTPClientTransport::connectTo(const string& addr, uint16_t port) {
     // Tworzymy gniazdo SCTP (One-to-One style)

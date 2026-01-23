@@ -5,7 +5,7 @@
 #include <cstdio>
 #include <netinet/sctp.h> 	// Biblioteka SCTP
 #include <cmath>		//fabs
-
+#include <vector>
 SCTPClientTransport::SCTPClientTransport() : sockfd(-1) {}
 SCTPClientTransport::SCTPClientTransport(int existing_fd) : sockfd(existing_fd) {}
 SCTPClientTransport::~SCTPClientTransport() { close_connection(); }

@@ -18,6 +18,8 @@ public:
 	virtual ssize_t send(const vector<uint8_t>& data) = 0;
 	virtual ssize_t recieve(vector<uint8_t>& data) = 0;
 	virtual void close_connection() = 0;
+	virtual std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data) = 0;
+	virtual std::vector<uint8_t> decrypt(const std::vector<uint8_t>& data) = 0;
 };
 
 #endif
