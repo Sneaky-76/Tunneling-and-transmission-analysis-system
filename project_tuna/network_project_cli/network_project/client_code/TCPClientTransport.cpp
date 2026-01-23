@@ -8,7 +8,7 @@
 #include <vector>
 #include <cstring>
 #include <sodium.h>
-using namespace std;
+
 
 static uint8_t CHACHA20_KEY[crypto_stream_chacha20_KEYBYTES] = {
     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,
