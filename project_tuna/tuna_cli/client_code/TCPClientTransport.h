@@ -30,6 +30,8 @@ public:
 	void update_rtt_value(double rtt_val) override;
 	void update_mtu() override;
 	Telemetry get_stats() override;
+	std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data) override;
+    std::vector<uint8_t> decrypt(const std::vector<uint8_t>& data) override;
 	
         //goodput, throughput & packet loss/retransmissions
 	void telemetry_update() override;

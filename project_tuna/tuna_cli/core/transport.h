@@ -25,6 +25,8 @@ public:
 	virtual Telemetry get_stats() = 0;
 	
 	virtual void telemetry_update()=0;
+	virtual std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data) = 0;
+	virtual std::vector<uint8_t> decrypt(const std::vector<uint8_t>& data) = 0;
 };
 
 #endif

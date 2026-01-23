@@ -10,6 +10,8 @@ using std::vector;
 UDPClientTransport::UDPClientTransport(): sockfd(-1){}
 UDPClientTransport::~UDPClientTransport(){close_connection();}
 
+std::vector<uint8_t> UDPClientTransport::encrypt(const std::vector<uint8_t>& data) {return data;};
+std::vector<uint8_t> UDPClientTransport::decrypt(const std::vector<uint8_t>& data) {return data;};
 
 bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
     sockfd=socket(AF_INET,SOCK_DGRAM,0);

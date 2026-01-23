@@ -13,6 +13,7 @@ public:
     virtual bool bindAndListen(uint16_t port) = 0;
     virtual unique_ptr<Transport> acceptClient() = 0;
     virtual void close_connection() = 0;
+    
 };
 
 #endif

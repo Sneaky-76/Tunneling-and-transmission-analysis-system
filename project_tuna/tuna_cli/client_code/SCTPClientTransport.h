@@ -26,6 +26,9 @@ public:
     ssize_t recieve(vector<uint8_t>& data) override;
     void close_connection() override;
 
+    std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data) override;
+    std::vector<uint8_t> decrypt(const std::vector<uint8_t>& data) override;
+    
     void update_rtt_value(double rtt_val) override;
     void update_mtu() override;
     Telemetry get_stats() override;

@@ -11,6 +11,9 @@
 using std::string;
 using std::vector;
 
+std::vector<uint8_t> UDPClientTransport::encrypt(const std::vector<uint8_t>& data) {return data;};
+std::vector<uint8_t> UDPClientTransport::decrypt(const std::vector<uint8_t>& data) {return data;};
+
 UDPClientTransport::UDPClientTransport() : sockfd(-1) {//stats.rtt_ms = 0.0, stats.jitter = 0.0;}
   this->sockfd = socket(AF_INET, SOCK_DGRAM, 0);
   if(this->sockfd >= 0){

@@ -1,6 +1,6 @@
 #ifndef TCPTRANSPORT_H
 #define TCPTRANSPORT_H
-
+#include <vector>
 #include "../core/transport.h"
 #include <netinet/in.h>		//includes the definition of sockaddr_in,
 				//IPPROTO & many others
@@ -17,6 +17,9 @@ public:
         ssize_t send(const vector<uint8_t>& data) override;
        	ssize_t recieve(vector<uint8_t>& data) override;
         void close_connection() override;
+		std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data) override;
+    	std::vector<uint8_t> decrypt(const std::vector<uint8_t>& data) override;
+
 
 };
 
