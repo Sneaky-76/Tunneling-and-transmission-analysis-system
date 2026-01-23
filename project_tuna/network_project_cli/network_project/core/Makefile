@@ -1,6 +1,6 @@
 G = g++
 GFLAGS = -std=c++17 -Wall
-LIBS = -lpthread -lsctp
+LIBS = -lpthread -lsctp -lsodium
 
 SRCS = main.cpp \
        ../client_code/client.cpp \

@@ -23,6 +23,8 @@ public:
 	virtual void update_rtt_value(double rtt_val) = 0;
 	virtual void update_mtu() = 0;
 	virtual Telemetry get_stats() = 0;
+	virtual std::vector<uint8_t> encrypt(const std::vector<uint8_t>& data) = 0;
+	virtual std::vector<uint8_t> decrypt(const std::vector<uint8_t>& data) = 0;
 };
 
 #endif

@@ -10,6 +10,9 @@ SCTPClientTransport::SCTPClientTransport() : sockfd(-1) {}
 SCTPClientTransport::SCTPClientTransport(int existing_fd) : sockfd(existing_fd) {}
 SCTPClientTransport::~SCTPClientTransport() { close_connection(); }
 
+std::vector<uint8_t> SCTPClientTransport::encrypt(const std::vector<uint8_t>& data){return data;};
+std::vector<uint8_t> SCTPClientTransport::decrypt(const std::vector<uint8_t>& data){return data;};
+
 void SCTPClientTransport::update_mtu(){ 
 
         struct sctp_status status{};
