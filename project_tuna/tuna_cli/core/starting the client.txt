@@ -1,0 +1,5 @@
+Prerequisites: both g++ and make need to be installed
+OS: Linux
+Command: ./clientSide <server_ip> <protocol>
+
+Client will ask if you want to activate background traffic generator confirm with <y/n>

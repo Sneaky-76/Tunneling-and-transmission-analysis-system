@@ -9,6 +9,13 @@ class SCTPClientTransport : public Transport {
 private:
     int sockfd;
     Telemetry stats;
+    
+    //for packet loss measurement
+    uint32_t total_sent_requests=0;
+    uint32_t total_received_responses=0;
+        
+    uint32_t last_sent_count = 0;
+    uint32_t last_recvd_count = 0;
 public:
     SCTPClientTransport();
     explicit SCTPClientTransport(int existing_fd); // Ważne dla serwera!
@@ -21,6 +28,9 @@ public:
 
     void update_rtt_value(double rtt_val) override;
     void update_mtu() override;
-	Telemetry get_stats() override;
+    Telemetry get_stats() override;
+    
+    //goodput, throughput & packet loss/retransmissions
+    void telemetry_update() override;
 };
 #endif

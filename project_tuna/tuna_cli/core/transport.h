@@ -14,7 +14,7 @@ using namespace std;
 class Transport{
 //probably better tu put "Telemetry stats" here under protected
 public:
-	//virtual ~Transport() = default;
+	virtual ~Transport() = default;
 	virtual bool connectTo(const string& addr, uint16_t port) = 0;
 	virtual ssize_t send(const vector<uint8_t>& data) = 0;
 	virtual ssize_t recieve(vector<uint8_t>& data) = 0;
@@ -23,6 +23,8 @@ public:
 	virtual void update_rtt_value(double rtt_val) = 0;
 	virtual void update_mtu() = 0;
 	virtual Telemetry get_stats() = 0;
+	
+	virtual void telemetry_update()=0;
 };
 
 #endif

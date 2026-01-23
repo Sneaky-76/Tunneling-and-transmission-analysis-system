@@ -48,19 +48,16 @@ bool Client::start_transmission(){
 
 	vector<uint8_t> payload(input.begin(), input.end());
 
-	//vector<uint8_t> payload = {'S','o','m','e','t','h','i','n','g'};
-
-	auto start_rtt_time_measurement = std::chrono::steady_clock::now(); //add2
+	auto start_rtt_time_measurement = std::chrono::steady_clock::now();
 	transport->send(payload);
 
 	cout << "Message sent, waiting for confirmation . . .\n";
 
 	vector<uint8_t> response_buff;
 	ssize_t bytes = transport->recieve(response_buff);
-	auto end_rtt_time_measurement = std::chrono::steady_clock::now(); //add3
+	auto end_rtt_time_measurement = std::chrono::steady_clock::now();
 
 	auto time_elapsed = end_rtt_time_measurement - start_rtt_time_measurement;
-	//double rtt_val = static_cast<double>(time_elapsed.count());
 	std::chrono::duration<double, std::milli> time_elapsed_in_ms = time_elapsed; 	//time in ms (double initialised in ms)
 	double rtt_val = time_elapsed_in_ms.count();
 	transport->update_rtt_value(rtt_val);
@@ -70,7 +67,7 @@ bool Client::start_transmission(){
 		cout << "\n[Server response]: " << confirmation << endl;
 	} else {
 		cout << "\n[Error]: No response recieved.\n";
-		return false;
+		//return false;
 	}
 
 	cout << "\nRecieved message consists of: " << response_buff.size() << " bytes.\n";

@@ -5,6 +5,7 @@
 #include <cstdio>		//perror
 #include <string>
 #include <cmath>		//fabs
+//#include <chrono>               //for telemtery update
 
 using namespace std;
 
@@ -47,18 +48,24 @@ bool TCPClientTransport::connectTo(const string& addr, uint16_t port){
 }
 
 ssize_t TCPClientTransport::send(const vector<uint8_t>& data){
-	
-	update_mtu();
-	return ::send(sockfd, data.data(), data.size(), 0);     //send requires const void* data, which
-                                                                        //.data() provides (pointer because of vector
-
+      
+        update_mtu();
+        telemetry_update();
+	ssize_t snd = ::write(sockfd, data.data(), data.size());
+        if(snd >= 0){
+            stats.total_bytes_sent += snd;
+            stats.total_packets_sent++;
+        }
+        return snd;
 }
 
 ssize_t TCPClientTransport::recieve(vector<uint8_t>& data){
 	data.resize(512);	//our max byte count in buffer
-	ssize_t recvdBytes = ::recv(sockfd, data.data(), data.size(), 0);
-	if(recvdBytes > 0)
+	ssize_t recvdBytes = ::read(sockfd, data.data(), data.size());
+	if(recvdBytes > 0){
+	        stats.total_packets_received++;
 		data.resize(recvdBytes);
+	}
 	return  recvdBytes;
 }
 
@@ -72,14 +79,49 @@ void TCPClientTransport::close_connection(){
 void TCPClientTransport::update_rtt_value(double rtt_val){
 	if(stats.total_packets > 0){
 		stats.jitter = fabs(rtt_val - stats.rtt_ms); //new - old rtt
-		//cout << "Old val: " << stats.rtt_ms << ", New one:" << rtt_val << endl;
 	}
 	stats.rtt_ms = rtt_val; //"new" is our old now
 
 	stats.total_packets++;	//incrementing the packet count
 }
 
-Telemetry TCPClientTransport::get_stats(){
-	return stats;	//returning statistics for Telemetry
+void TCPClientTransport::telemetry_update() {
+  auto now = std::chrono::steady_clock::now();
+  
+  struct tcp_info info;
+  socklen_t info_len = sizeof(info);
+
+  //getting kernel data
+  if (getsockopt(this->sockfd, IPPROTO_TCP, TCP_INFO, &info, &info_len) == 0) {
+
+  auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - stats.last_check_time).count();
+
+  if (duration_ms >= 100) {
+     double seconds = duration_ms / 1000.0;
+  
+  //in TCP we ask OS about packet loss
+  if(this->stats.total_packets){  //are there packets? if so, then count the loss | _
+        this->stats.packet_loss = (double)info.tcpi_total_retrans/(this->stats.total_packets +info.tcpi_total_retrans);
+  }
+
+    //throughput calulations  (all bytes sent in that particular measurent)
+    long long bytes_diff = stats.total_bytes_sent - stats.last_total_bytes;
+    this->stats.throughput_kbps = (bytes_diff * 8.0 / 1000.0) / seconds;    //dividing by 1000 because of kilo- (bytes)
+
+    //goodput calculattion  (throughput - loss)
+    this->stats.goodput_kbps = this->stats.throughput_kbps * (1.0 - this->stats.packet_loss);
+
+    //everything back to "idle" from the new message perspective
+    this->stats.last_check_time = now;
+    }   //duration_ms
+}   //getsockopt
+
 }
+
+    Telemetry TCPClientTransport::get_stats(){
+        //this->stats.total_packets_sent = this->total_sent_requests;
+        //this->stats.total_packets_received = this->total_received_responses;
+	return stats;
+    }
+
 
