@@ -13,6 +13,7 @@ bool SCTPServerTransport::bindAndListen(uint16_t port){
     listenfd = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP);
     if(listenfd < 0) { perror("Socket failed"); return false; }
     
+    // Allow immediate restart of the server
     int opt = 1;
     setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
@@ -29,9 +30,20 @@ bool SCTPServerTransport::bindAndListen(uint16_t port){
 unique_ptr<Transport> SCTPServerTransport::acceptClient(){
     struct sockaddr_in cliaddr{};
     socklen_t len = sizeof(cliaddr);
+    
+    // Accept the incoming connection
     int clifd = accept(listenfd, (struct sockaddr*)&cliaddr, &len);
     if(clifd < 0) return nullptr;
     
+    // --- FIX: DISABLE NAGLE ALGORITHM ON SERVER SIDE ---
+    // Ensure the server replies immediately  without delay
+    int enable = 1;
+    if (setsockopt(clifd, IPPROTO_SCTP, SCTP_NODELAY, &enable, sizeof(enable)) < 0) {
+        perror("SCTP Server NODELAY error");
+        // We continue even if this fails, but it's good to know
+    }
+    // ---------------------------------------------------
+
     return make_unique<SCTPClientTransport>(clifd);
 }
 
