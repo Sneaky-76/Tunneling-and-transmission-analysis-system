@@ -33,8 +33,6 @@ bool Server::initialize_transmission(const string& addr, uint16_t port){
     return false;
 }
 
-
-
 /*
  * Handles a single client session with an Authentication State Machine.
  * Flow:
@@ -124,7 +122,7 @@ void Server::handle_client_session(unique_ptr<Transport> cli_conn){
 }
 
 void Server::start_transmission(){
-    // Initialization of  the  background traffic sink on port 9999
+    // Initialization of the background traffic sink on port 9999
     bg_sink.start(9999);
 
     cout << "Server running and awaiting for connection . . .\n";
@@ -139,12 +137,54 @@ void Server::start_transmission(){
             ssize_t n = udp->receiveFrom(buffer, from);
             if (n <= 0) continue;
 
+            // FIX: Logging is commented out to prevent console lag during flood
+            /*
             cout << "[UDP] Packet from "
                  << inet_ntoa(from.sin_addr)
                  << ":" << ntohs(from.sin_port)
                  << " size=" << n << endl;
+            */
 
-            udp->sendTo(buffer, from); 
+            // FIX: UDP Logic updated to support Authentication instead of pure Echo
+            string msg(buffer.begin(), buffer.end());
+            
+            // Cleanup: Remove trailing newline characters/garbage
+            while (!msg.empty() && (msg.back() == '\n' || msg.back() == '\r')) {
+                msg.pop_back();
+            }
+
+            stringstream ss(msg);
+            string command, u, p;
+            ss >> command; // Read first word
+
+            string response;
+
+            // Authentication logic adapted for UDP
+            if (command == "LOGIN") {
+                ss >> u >> p;
+                if (db_manager.authenticate(u, p)) {
+                     response = "AUTH_SUCCESS";
+                     syslog(LOG_INFO, "[UDP] User logged in: %s", u.c_str());
+                } else {
+                     response = "AUTH_FAIL";
+                }
+            }
+            else if (command == "REGISTER") {
+                ss >> u >> p;
+                if (db_manager.registerUser(u, p)) {
+                    response = "REG_SUCCESS";
+                } else {
+                    response = "REG_FAIL";
+                }
+            }
+            else {
+                // If not a command, it is treated as a chat message
+                cout << "[UDP Chat]: " << msg << endl;
+                response = "ACK: message has been recieved by the server.";
+            }
+
+            vector<uint8_t> respData(response.begin(), response.end());
+            udp->sendTo(respData, from); 
         }
         return;
     }
