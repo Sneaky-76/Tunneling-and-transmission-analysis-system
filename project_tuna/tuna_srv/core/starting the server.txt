@@ -1,3 +1,18 @@
-Prerequisites: both g++ and make need to be installed
+Prerequisites: 
+- g++ compiler
+- make utility
+- libsodium development library (install via: sudo apt-get install libsodium-dev)
+- libsctp development library (install via: sudo apt-get install libsctp-dev)
+
 OS: Linux
-Command: sudo ./serverSide <protocol>
+
+Compilation:
+Run 'make all' to build the executable.
+
+Command: 
+sudo ./serverSide <protocol>
+
+Notes:
+- The server initializes a local database file ('users_db.txt') for user authentication.
+- Administrator privileges (sudo) are required for binding to system ports.
+- Supported protocols usually include: tcp, udp, sctp.

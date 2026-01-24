@@ -100,21 +100,15 @@ int main(int argc, char* argv[]) {
 	Client theClient(move(transport_backend));
 
     if (theClient.initialize_transmission(server_ip, port)) {
-        cout << "[Main] Connected to " << server_ip << ":" << port << ".\n";
-        while(theClient.start_transmission()){
-	  Transport* active_transport = theClient.get_transport();
-	if(active_transport){		//if the pointer is not NULL
-		Telemetry stats = active_transport->get_stats();
-		cout << "Measured RTT: " << stats.rtt_ms << " ms\n";
-		cout << "Measured jitter: " << stats.jitter << " ms\n";
-		cout << "MTU: " << stats.mtu << " bytes\n";
-		cout << "Packet loss: " << fixed << setprecision(3) << (stats.packet_loss)*100.0 << " %\n";
-		cout << "Throughput: " << stats.throughput_kbps << " kbps\n";
-		cout << "Goodput: " << stats.goodput_kbps << " kbps\n";
-	}
-	active_transport->telemetry_update();  //update at the end, otherwise won't really work
-    }	//while(1)
+        cout << "[Main] Connection established to " << server_ip << ":" << port << ".\n";
+        
+        // The main application loop is executed within start_transmission().
+        // Telemetry and messages are handled internally.
+        // The function returns when the user decides to quit.
+        theClient.start_transmission();
     }
+    
+    cout << "[Main] Client application terminated.\n";
     //string command_final = ("tc -p qdisc ls dev [to do]");
     return 0;
 }

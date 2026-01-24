@@ -3,6 +3,7 @@ GFLAGS = -std=c++17 -Wall
 LIBS = -lpthread -lsctp -lsodium
 
 SRCS = main.cpp \
+       DatabaseManager.cpp \
        ../server_code/server.cpp \
        ../server_code/TCPServerTransport.cpp \
        ../server_code/SCTPServerTransport.cpp \
