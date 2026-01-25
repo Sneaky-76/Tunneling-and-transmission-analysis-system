@@ -11,6 +11,30 @@
 #include "../client_code/SCTPClientTransport.h"
 #include "../client_code/UDPClientTransport.h"
 
+    std::string find_active_interface() {
+struct ifaddrs *addrs, *tmp;
+getifaddrs(&addrs);
+tmp = addrs;
+
+std::string interface_name = "lo"; // Default to loopback
+
+while (tmp) {
+// Look for an interface that is UP, has an IP, and isn't the loopback 'lo'
+if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
+std::string name = tmp->ifa_name;
+if (name != "lo") {
+interface_name = name;
+break;
+}
+}
+tmp = tmp->ifa_next;
+}
+
+freeifaddrs(addrs);
+return interface_name;
+}
+
+
 using namespace std;
 
 int main(int argc, char* argv[]) {

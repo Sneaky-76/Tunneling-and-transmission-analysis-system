@@ -5,6 +5,9 @@
 #include "TrafficGenerator.h"
 #include <vector>
 #include <memory>		//where unique_ptr resides
+#include <string>
+#include <ifaddrs.h>
+
 using namespace std;
 
 class Client{
@@ -21,6 +24,8 @@ public:
 	bool initialize_transmission(const string& addr, uint16_t port);
 	bool start_transmission();
 	void close_transmission();
+	
+	string find_active_interface(); //for proper real packet loss simulation implementation
 };
 
 #endif
