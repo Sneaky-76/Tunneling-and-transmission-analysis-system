@@ -201,6 +201,8 @@ void TCPClientTransport::telemetry_update() {
   
   //in TCP we ask OS about packet loss
   if(this->stats.total_packets){  //are there packets? if so, then count the loss | _
+            cout << "rec: " << total_received_responses << endl;
+    cout << "snd: " << total_sent_requests << endl;
         this->stats.packet_loss = (double)info.tcpi_total_retrans/(this->stats.total_packets +info.tcpi_total_retrans);
   }
 
