@@ -1,8 +1,8 @@
 #include "UDPClientTransport.h"
-#include <sys/socket.h>		//core POSIX socekt API
-#include <arpa/inet.h>		//inet_pton, so string -> binary conversion
-#include <unistd.h>		//POSIX system calls header
-#include <cstdio>		//perror
+#include <sys/socket.h>   //core POSIX socekt API
+#include <arpa/inet.h>    //inet_pton, so string -> binary conversion
+#include <unistd.h>   //POSIX system calls header
+#include <cstdio>   //perror
 #include <string>
 #include <sys/ioctl.h>    //mtu
 #include <net/if.h>
@@ -18,8 +18,8 @@ UDPClientTransport::UDPClientTransport() : sockfd(-1) {//stats.rtt_ms = 0.0, sta
   this->sockfd = socket(AF_INET, SOCK_DGRAM, 0);
   if(this->sockfd >= 0){
   struct timeval tv;
-  tv.tv_sec = 0;                      //starting value
-  tv.tv_usec = 500000;                //timeout in us [microseconds] for packet loss 
+  tv.tv_sec = 3;                      //starting value (Increased to 3s for login stability)
+  tv.tv_usec = 0;                //timeout in us [microseconds] for packet loss 
                                       //(packet not registered in time? -> do not increment received)
   setsockopt(this->sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
   this->total_sent_requests=0;        //default values that are needed
@@ -44,13 +44,17 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
     this->destination_addr.sin_family = AF_INET;
     this->destination_addr.sin_port = htons(port);
 
-    
-
     if(inet_pton(AF_INET,addr.c_str(),&this->destination_addr.sin_addr) <= 0){
-
         perror("Pton error:");
         return 0;
     }
+
+    // CRITICAL FIX: We must connect the UDP socket to use send/recv interface consistently
+    if (connect(this->sockfd, (struct sockaddr*)&this->destination_addr, sizeof(this->destination_addr)) < 0) {
+        perror("Connect error:");
+        return 0;
+    }
+
     return 1;
 }
     
@@ -59,8 +63,8 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
       this->total_sent_requests++; //count attempts
       this->update_mtu();
       
-    ssize_t sent = ::sendto(sockfd, data.data(), data.size(), 0,
-                           (struct sockaddr*)&destination_addr, sizeof(destination_addr));
+    // Use send() because we are connected now
+    ssize_t sent = ::send(this->sockfd, data.data(), data.size(), 0);
     
     if (sent > 0) {
         this->stats.total_bytes_sent += sent;
@@ -70,10 +74,11 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
 }
 
     ssize_t UDPClientTransport::recieve(vector<uint8_t> &data) {  
-      socklen_t length = sizeof(source_addr);
+      //socklen_t length = sizeof(source_addr); // Not needed for connected socket
       data.resize(1500);
 
-      ssize_t recvdBytes = recvfrom(sockfd, data.data(), data.size(), MSG_DONTWAIT, (struct sockaddr*)&source_addr, &length); //0 before
+      // CRITICAL FIX: Removed MSG_DONTWAIT so it waits for the timeout period
+      ssize_t recvdBytes = ::recv(this->sockfd, data.data(), data.size(), 0); 
 
       if(recvdBytes > 0) {
         data.resize(recvdBytes);
@@ -93,13 +98,13 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
     }
     
     void UDPClientTransport::update_rtt_value(double rtt_val){
-	if(stats.total_packets > 0){
-		stats.jitter = fabs(rtt_val - stats.rtt_ms); 	//new - old rtt, jitter measurement
-								//because its strictly tied to rtt
-	}
+  if(stats.total_packets > 0){
+    stats.jitter = fabs(rtt_val - stats.rtt_ms);  //new - old rtt, jitter measurement
+                //because its strictly tied to rtt
+  }
         stats.rtt_ms = rtt_val; //"new" is our old now
 
-	stats.total_packets++;	//incrementing the packet count
+  stats.total_packets++;  //incrementing the packet count
     }
     
     void UDPClientTransport::update_mtu() {
@@ -113,6 +118,7 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
       }
 
       //connect briefly to allow getsockopt to work (wont work otherwise)
+      //Note: We are already connected in connectTo, but this logic preserves your MTU probing style
       if (connect(this->sockfd, (struct sockaddr*)&this->destination_addr, sizeof(this->destination_addr)) == 0) {
 
         //probing path MTU from the kernel
@@ -120,10 +126,10 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
           this->stats.mtu = mtu;
         } 
 
-        //dissolve association
-        struct sockaddr_in dissolve = {};
-        dissolve.sin_family = AF_UNSPEC;
-        connect(this->sockfd, (struct sockaddr*)&dissolve, sizeof(dissolve));
+        //dissolve association (Not needed if we want to keep connection, but keeping for style 1:1)
+        // struct sockaddr_in dissolve = {};
+        // dissolve.sin_family = AF_UNSPEC;
+        // connect(this->sockfd, (struct sockaddr*)&dissolve, sizeof(dissolve));
       }
 
       //is still 0 or something failed, just use the default value
@@ -172,6 +178,5 @@ void UDPClientTransport::telemetry_update() {
     Telemetry UDPClientTransport::get_stats(){
         this->stats.total_packets_sent = this->total_sent_requests;
         this->stats.total_packets_received = this->total_received_responses;
-	return stats;
+  return stats;
     }
-

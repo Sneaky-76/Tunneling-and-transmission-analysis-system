@@ -1,5 +1,7 @@
 #include <iostream>
-#include <chrono>			//add1
+#include <chrono>
+#include <limits> // Required for clearing input buffer
+#include <iomanip>            //fixed & setprecision
 #include "client.h"
 #include "../core/telemetry.h"
 
@@ -8,74 +10,175 @@ using namespace std;
 Client::Client(unique_ptr<Transport> t) : transport(move(t)) {}
 
 bool Client::initialize_transmission(const string& addr, uint16_t port){
-    // Address storage for later usage
+    // Address storage for later usage (Traffic Generator needs this)
     this->server_ip = addr; 
 
     // Attempt to connect to the server
     if(!transport->connectTo(addr, port)){
         return false;
     }
+    
+    // NOTE: Background traffic setup is moved to start_transmission
+    // to occur ONLY after successful authentication.
 
+    return true;
+}
+
+bool Client::start_transmission(){
+
+	// Gemini 3 Pro was used to help integrating authentication.
+    // ---  AUTHENTICATION LOOP ---
+    bool is_logged_in = false;
+
+    while(!is_logged_in) {
+        cout << "\n--- Authentication Required ---\n";
+        cout << "1. Login\n";
+        cout << "2. Register\n";
+        cout << "3. Exit\n";
+        cout << "Select option: ";
+
+        int choice;
+        // Input validation to prevent infinite loops on invalid char
+        if (!(cin >> choice)) {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            continue;
+        }
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); // Clear n ewline from buffer
+
+        if (choice == 3) {
+            return false; // Exit application
+        }
+
+        string u, p, cmd;
+        
+        if (choice == 1) {
+            cmd = "LOGIN";
+            cout << "Username: "; cin >> u;
+            cout << "Password: "; cin >> p;
+        } else if (choice == 2) {
+            cmd = "REGISTER";
+            cout << "Username: "; cin >> u;
+            cout << "Password: "; cin >> p;
+        } else {
+            cout << "Invalid option.\n";
+            continue;
+        }
+        // Clearing buffer after string input before next I/O
+        cin.ignore(numeric_limits<streamsize>::max(), '\n'); 
+
+        // Protocol message construction: "CMD user pass"
+        string auth_msg = cmd + " " + u + " " + p;
+        vector<uint8_t> payload(auth_msg.begin(), auth_msg.end());
+
+        // Auth request transmission
+        if(!transport->send(payload)) {
+            cout << "[Error] Failed to send authentication request.\n";
+            break;
+        }
+
+        // Waiting for server response
+        vector<uint8_t> response_buff;
+        if(transport->recieve(response_buff) > 0) {
+            string resp(response_buff.begin(), response_buff.end());
+            
+            // Response analysis
+            if (resp.find("AUTH_SUCCESS") != string::npos) {
+                cout << "\n[Success] Authentication successful.\n";
+                is_logged_in = true;
+            } else if (resp.find("REG_SUCCESS") != string::npos) {
+                cout << "\n[Success] Registration completed. Please login now.\n";
+            } else {
+                cout << "\n[Server] " << resp << "\n";
+                cout << "Please try again.\n";
+            }
+        }
+    }
+
+    // Safety check:  if loop exited without login (e.g., break), return.
+    if (!is_logged_in) return false;
+
+	// Gemini 3 Pro was used to help implement background traffic  generation.
     // --- BACKGROUND TRAFFIC SECTION ---
     
     char run_bg;
-    cout << "Start background traffic generator? (y/n): ";
+    cout << "\nStart background traffic generator? (y/n): ";
     cin >> run_bg;
     cin.ignore(); // Input buffer clearing
 
     if(run_bg == 'y' || run_bg == 'Y') {
         cout << "[Client] Starting UDP flood to " << this->server_ip << ":9999" << endl;
         
-        // Setup using the stored server IP
+        //  Setup using the stored server IP
         if(bg_traffic.setup(this->server_ip, 9999)) {
             // Start generation: 1400 bytes packet size, 0ms interval (max speed)
             bg_traffic.start(1400, 0); 
         }
     }
-    // --------------------------------------------------
 
+    while(true){ 
+        string input;
+        cout << "\nEnter the message (or type q to quit): \n";
+        getline(cin, input);
+        
+        if(input == "q" || input == "Q") break;  
+
+        vector<uint8_t> payload(input.begin(), input.end());
+
+        auto start_rtt_time_measurement = std::chrono::steady_clock::now();
+        
+        // Message is transmitted
+        if(transport->send(payload) <= 0){
+             cout << "Message transmission failed.\n";
+             break;
+        }
+
+        cout << "Message sent, waiting for confirmation . . .\n";
+
+        vector<uint8_t> response_buff;
+        ssize_t bytes = transport->recieve(response_buff);
+        
+        auto end_rtt_time_measurement = std::chrono::steady_clock::now();
+        
+        // Duration is calculated
+        auto time_elapsed = end_rtt_time_measurement - start_rtt_time_measurement;
+        std::chrono::duration<double, std::milli> time_elapsed_in_ms = time_elapsed;    
+        double rtt_val = time_elapsed_in_ms.count();
+        
+        // Internal RTT state is updated
+        transport->update_rtt_value(rtt_val);
+        
+        if(bytes > 0){
+            string confirmation(response_buff.begin(), response_buff.end());
+            cout << "\n[Server response]: " << confirmation << endl;
+            
+            // FULL TELEMETRY DISPLAY (Migrated from main.cpp)
+            // Stats are retrieved from the transport layer
+            Telemetry stats = transport->get_stats();
+
+            cout << "Measured RTT: " << rtt_val << " ms" << endl;
+            // Note: Jitter is accessed from the stats structure
+            cout << "Measured jitter: " << stats.jitter << " ms" << endl; 
+            cout << "MTU: " << stats.mtu << " bytes" << endl;
+            
+            // Packet loss, Throughput, and Goodput are displayed with precision
+            cout << "Packet loss: " << fixed << setprecision(3) << (stats.packet_loss) * 100.0 << " %\n";
+            cout << "Throughput: " << stats.throughput_kbps << " kbps\n";
+            cout << "Goodput: " << stats.goodput_kbps << " kbps\n";
+
+        } else {
+            cout << "\n[Error]: No response recieved.\n";
+        }
+
+        // Telemetry state is updated/reset for the next measurement window
+        // This corresponds to 'active_transport->telemetry_update()' from main.cpp
+        transport->telemetry_update();
+    }
+
+    bg_traffic.stop();
     return true;
 }
-bool Client::start_transmission(){
-
-//while(1){
-
-	string input;
-	cout << "Enter the message (or type q to quit): \n";
-	getline(cin, input);
-	if(input == "q" || input == "Q")
-		return false;	
-
-	vector<uint8_t> payload(input.begin(), input.end());
-
-	auto start_rtt_time_measurement = std::chrono::steady_clock::now();
-	transport->send(payload);
-
-	cout << "Message sent, waiting for confirmation . . .\n";
-
-	vector<uint8_t> response_buff;
-	ssize_t bytes = transport->recieve(response_buff);
-	auto end_rtt_time_measurement = std::chrono::steady_clock::now();
-
-	auto time_elapsed = end_rtt_time_measurement - start_rtt_time_measurement;
-	std::chrono::duration<double, std::milli> time_elapsed_in_ms = time_elapsed; 	//time in ms (double initialised in ms)
-	double rtt_val = time_elapsed_in_ms.count();
-	transport->update_rtt_value(rtt_val);
-	
-	if(bytes > 0){
-		string confirmation(response_buff.begin(), response_buff.end());
-		cout << "\n[Server response]: " << confirmation << endl;
-	} else {
-		cout << "\n[Error]: No response recieved.\n";
-		//return false;
-	}
-
-	cout << "\nRecieved message consists of: " << response_buff.size() << " bytes.\n";
-	 return true;
-}
-
-//}	//while(1)
 
 void Client::close_transmission(){
-	transport->close_connection();
+    transport->close_connection();
 }
