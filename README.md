@@ -11,7 +11,7 @@ Kacper Olszewski
 
 Wiktor Rogowski
 
-## 📋 Prerequisites
+##  Prerequisites
 
 This project is designed for **Linux** operating systems. Before compiling, ensure you have the following packages installed:
 
