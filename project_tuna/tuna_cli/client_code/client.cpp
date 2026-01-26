@@ -1,35 +1,37 @@
 #include <iostream>
-#include <chrono>
-#include <limits> // Required for clearing input buffer
-#include <iomanip>            //fixed & setprecision
+#include <chrono>				//used for rtt measurement
+#include <limits> 				// Required for clearing input buffer
+#include <iomanip>            	//fixed & setprecision
 #include "client.h"
 #include "../core/telemetry.h"
-#include <cstdlib>            //system command
+#include <cstdlib>            	//system command
 
 using namespace std;
 
 //gemini was used in order to properly implement automatic "find user's interface" function
-string Client::find_active_interface() {
-  struct ifaddrs *addrs, *tmp;
-  getifaddrs(&addrs);
-  tmp = addrs;
+string Client::find_active_interface() {	//function determining with which interface should the program bind
+  struct ifaddrs *addrs, *tmp;	//addrs holds teh start of the network interfaces list, tmp will pick one of them
+  getifaddrs(&addrs);			//system call of "give me a list of every network interface available right now"
+  tmp = addrs;					//starting the search for desired interface
 
-  string interface_name = "lo"; //default to loopback
+  string interface_name = "lo"; //assuming loopback is default
 
-  while (tmp) {
-    //loooking for an interface that is UP,has an IP, and is not the loopback (lo)
-    if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
-    string name = tmp->ifa_name;
-      if (name != "lo") {
-        interface_name = name;
-      break;
+  while (tmp) {					//if there is another interface, look for it
+    //loooking for an interface that is up,has an IP, and is not the loopback (lo)
+    if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {		//we're operating with IPv4
+	//tmp->ifa_addr checks if the interface has an address assigned,
+	//tmp->ifa_addr->sa_family == AF_INET checks if we're grabbing an IPv4 address
+    string name = tmp->ifa_name;	//the the name of the interface
+      if (name != "lo") {			//ignore loopback, we dont tunel through it
+        interface_name = name;		//save the result
+      break;						//found something? break out
       }
     }
-  tmp = tmp->ifa_next;
+  tmp = tmp->ifa_next;				//jumping to the next found interface in ifaddrs struct
   }
 
-  freeifaddrs(addrs);
-  return interface_name;
+  freeifaddrs(addrs);				//memory leak prevention (because of heap allocation via getifaddr)
+  return interface_name;			//return the result
 }
 
 Client::Client(unique_ptr<Transport> t) : transport(move(t)) {}
@@ -123,7 +125,7 @@ bool Client::start_transmission(){
     // Safety check:  if loop exited without login (e.g., break), return.
     if (!is_logged_in) return false;
   
-    string interface = find_active_interface();
+    string interface = find_active_interface();	//get the user's interface automatically 
     
     string p_drop_ans;
     string p_drop_cmnd_start;
@@ -132,17 +134,17 @@ bool Client::start_transmission(){
     cout << "Provide packet drop value [%]: ";
     cin >> p_drop_ans;
     int p_drop_val = stoi(p_drop_ans);
-    if(p_drop_val >= 100){
+    if(p_drop_val >= 100){		//100% is the maximum limit
       p_drop_val = 100;
       was_here_already = true;
-    }else if(p_drop_val <= 0){
+    }else if(p_drop_val <= 0){	//0% is the minimum limit
       p_drop_val = 0;
       was_here_already = true;
     }
     
     if(was_here_already){   //if there is an attempt to remove something that does not exist, there will be an error
       p_drop_cmnd_stop = ("sudo tc qdisc del dev " + interface + " root");  //deleting the changes made via command
-      system(p_drop_cmnd_stop.c_str());                          //yes, network intereface type forced here.
+      system(p_drop_cmnd_stop.c_str());
     }
     p_drop_cmnd_start = ("sudo tc qdisc add dev " + interface + " root netem loss " + to_string(p_drop_val) + "%");
     system(p_drop_cmnd_start.c_str());
@@ -226,7 +228,7 @@ bool Client::start_transmission(){
     }
 
     bg_traffic.stop();
-    p_drop_cmnd_stop = ("sudo tc qdisc del dev enp0s3 root");  //deleting the changes (if leaving the program completely)
+    p_drop_cmnd_stop = ("sudo tc qdisc del dev " + interface + " root");  //deleting the changes (if leaving the program completely)
     system(p_drop_cmnd_stop.c_str());
     return true;
 }
