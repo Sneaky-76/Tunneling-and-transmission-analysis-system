@@ -1,7 +1,7 @@
 # Tunneling and transmission analysis system
 Repository for a project combining subjects Network Programming with Telecommunication Networks and Systems, conducted in the year 2025/26.
 The goal of the project is to make a functional tunneling system, consisting of both client and server applications, with the analysis of its
-transmission parameters, written in C++ language.
+transmission parameters. It also include user databse with logging and registration, written in C++ language. No .exe files involved :)
 
 Project team:
 
@@ -27,6 +27,7 @@ sudo apt-get update
 sudo apt-get install build-essential libsodium-dev libsctp-dev
 ```
 ### Compilation
+Software needs to be run from more then one Linux machines connected in the same network. If machines are virtual then for example in Oracle VirtualBox nat network works.
 For server: in `project_tuna/tuna_srv/core`
 ```bash
 make
@@ -59,6 +60,7 @@ tcp, udp or sctp is supported
 - The server initializes a local database file ('users_db.txt') for user authentication.
 - Administrator privileges (sudo) are required for binding to system ports.
 - Supported protocols usually include: tcp, udp, sctp.
+- more then 1 clients are supported too
 
 
 
