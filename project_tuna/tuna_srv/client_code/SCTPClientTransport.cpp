@@ -7,6 +7,8 @@
 #include <cstring>
 #include <sodium.h>
 #include <vector>
+
+// Static 256-bit (32 bytes) symmetric key
 static uint8_t CHACHA20_KEY[crypto_stream_chacha20_KEYBYTES] = {
     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,
     0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,
@@ -15,27 +17,34 @@ static uint8_t CHACHA20_KEY[crypto_stream_chacha20_KEYBYTES] = {
 }; 
 
 SCTPClientTransport::SCTPClientTransport() : sockfd(-1) {
+    // initialize sodium
     if (sodium_init() < 0) {
         throw std::runtime_error("libsodium error ");
     }
 }
+
 SCTPClientTransport::SCTPClientTransport(int existing_fd) : sockfd(existing_fd) {
+    // initialize sodium
     if (sodium_init() < 0) {
         throw std::runtime_error("libsodium error ");
     }
 }
+
 SCTPClientTransport::~SCTPClientTransport() { close_connection(); }
+
+// Encryption Logic (ChaCha20)
 // same as tcp
 std::vector<uint8_t> SCTPClientTransport::encrypt(const std::vector<uint8_t>& data) {
     std::vector<uint8_t> out(data.size());
     uint8_t nonce[crypto_stream_chacha20_NONCEBYTES];
     
-  
+    // generate a random Nonce 
     randombytes_buf(nonce, sizeof(nonce));
 
     // ciphering with xor
     crypto_stream_chacha20_xor(out.data(), data.data(), data.size(), nonce, CHACHA20_KEY);
 
+    // putting the message together using memcpy: nonce + cipher text
     std::vector<uint8_t> result(sizeof(nonce) + out.size());
     std::memcpy(result.data(), nonce, sizeof(nonce));
     std::memcpy(result.data() + sizeof(nonce), out.data(), out.size());
@@ -43,21 +52,24 @@ std::vector<uint8_t> SCTPClientTransport::encrypt(const std::vector<uint8_t>& da
     return result;
 }
 
+// Decryption Logic (ChaCha20)
 std::vector<uint8_t > SCTPClientTransport::decrypt(const std::vector<uint8_t>& data) {
     // check if it can contain nonce
     if(data.size() <  crypto_stream_chacha20_NONCEBYTES)
         throw std::runtime_error("text too short");
 
+    // Read Nonce from the beginning of the received packet.
     const uint8_t*  nonce = data.data( );
     const uint8_t* ciphertext = data.data() +  crypto_stream_chacha20_NONCEBYTES;
     size_t ciphertext_len = data.size()  - crypto_stream_chacha20_NONCEBYTES;
 
     std::vector<uint8_t> out(ciphertext_len);
-    //deciphering
+    // deciphering
     crypto_stream_chacha20_xor(out.data(), ciphertext, ciphertext_len, nonce, CHACHA20_KEY );
 
     return out;
 }
+
 bool SCTPClientTransport::connectTo(const string& addr, uint16_t port) {
     // Tworzymy gniazdo SCTP (One-to-One style)
     sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP);
@@ -72,10 +84,12 @@ bool SCTPClientTransport::connectTo(const string& addr, uint16_t port) {
         perror("SCTP Connect error");
         return false;
     }
+
     return true;
 }
 
 ssize_t SCTPClientTransport::send(const vector<uint8_t>& data) {
+    // Encrypt data before sending
     vector<uint8_t> encrypted = encrypt(data);
     
     // length of the message
@@ -83,22 +97,24 @@ ssize_t SCTPClientTransport::send(const vector<uint8_t>& data) {
     
     if(::send(sockfd, &frame_len, sizeof(frame_len), 0) <= 0) return -1;
 
-    //sending encrypted message
+    // sending encrypted message
     size_t total = 0;
     while(total < encrypted.size( )){ // loop that works when getting the message
         ssize_t sent = ::send(sockfd, encrypted.data() + total, encrypted.size() - total, 0);
-        if(sent <= 0) return sent;// error handling
-        total += sent; //counter update
+        if(sent <= 0) return sent; // error handling
+        total += sent; // counter update
     }
     return data.size();
 }
+
 ssize_t SCTPClientTransport::recieve(vector<uint8_t>& data) {
-   uint32_t frame_len_net = 0;
+    uint32_t frame_len_net = 0;
     
     // 4 bytes of information regarding next frame
     size_t header_recvd = 0;
     while(header_recvd < sizeof(frame_len_net)) {
-        ssize_t r = ::recv(sockfd, ((uint8_t*)&frame_len_net) +  header_recvd, sizeof(frame_len_net ) - header_recvd, 0);
+        ssize_t r = ::recv(sockfd, ((uint8_t*)&frame_len_net) +  header_recvd,
+                           sizeof(frame_len_net ) - header_recvd, 0);
         if(r <= 0) return r;
         header_recvd += r;
     }
@@ -114,7 +130,8 @@ ssize_t SCTPClientTransport::recieve(vector<uint8_t>& data) {
         if(r <= 0) return r;
         total += r;
     }
-    // deciphering attempt
+
+    // deciphering attempt, if there is problem exception is thrown
     try {
         data = decrypt(data);
         return data.size();

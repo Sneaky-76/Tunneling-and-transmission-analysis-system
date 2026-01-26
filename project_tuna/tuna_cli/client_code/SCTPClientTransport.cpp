@@ -11,7 +11,7 @@
 
 using namespace std;
 
-// Encryption Key (ChaCha20)
+// Static 256-bit (32 bytes) symmetric keyy
 static uint8_t CHACHA20_KEY[crypto_stream_chacha20_KEYBYTES] = {
     0x12,0x34,0x56,0x78,0x9a,0xbc,0xde,0xf0,
     0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,
@@ -22,13 +22,14 @@ static uint8_t CHACHA20_KEY[crypto_stream_chacha20_KEYBYTES] = {
 SCTPClientTransport::SCTPClientTransport() : sockfd(-1) { 
   stats.rtt_ms = 0.0;
   stats.jitter = 0.0;
-
+    // initialize sodium
   if (sodium_init() < 0) {
       throw std::runtime_error("libsodium error ");
   }
 }
 
 SCTPClientTransport::SCTPClientTransport(int existing_fd) : sockfd(existing_fd) {
+    // initialize sodium
   if (sodium_init() < 0) {
      throw std::runtime_error("libsodium error ");
   }
@@ -39,11 +40,13 @@ std::vector<uint8_t> SCTPClientTransport::encrypt(const std::vector<uint8_t>& da
     std::vector<uint8_t> out(data.size());
     uint8_t nonce[crypto_stream_chacha20_NONCEBYTES];
     
+    // generate a random Nonce 
     randombytes_buf(nonce, sizeof(nonce));
 
     // ciphering with xor
     crypto_stream_chacha20_xor(out.data(), data.data(), data.size(), nonce, CHACHA20_KEY);
 
+    // putting the message together using memcpy: nonce + cipher text
     std::vector<uint8_t> result(sizeof(nonce) + out.size());
     std::memcpy(result.data(), nonce, sizeof(nonce));
     std::memcpy(result.data() + sizeof(nonce), out.data(), out.size());
@@ -56,13 +59,13 @@ std::vector<uint8_t > SCTPClientTransport::decrypt(const std::vector<uint8_t>& d
     // check if it can contain nonce
     if(data.size() <  crypto_stream_chacha20_NONCEBYTES)
         throw std::runtime_error("text too short");
-
+// read nonce from the begining of message
     const uint8_t* nonce = data.data( );
     const uint8_t* ciphertext = data.data() +  crypto_stream_chacha20_NONCEBYTES;
     size_t ciphertext_len = data.size()  - crypto_stream_chacha20_NONCEBYTES;
 
     std::vector<uint8_t> out(ciphertext_len);
-    //deciphering
+    // Read Nonce from the beginning of the received packet.
     crypto_stream_chacha20_xor(out.data(), ciphertext, ciphertext_len, nonce, CHACHA20_KEY );
 
     return out;
@@ -151,7 +154,7 @@ ssize_t SCTPClientTransport::recieve( vector<uint8_t>& data) {
         total += r;
     }
 
-    // Deciphering attempt
+    // Deciphering attempt, if there is problem exception is thrown
     try {
         data = decrypt(data);
         this->stats.total_packets_received++; 
