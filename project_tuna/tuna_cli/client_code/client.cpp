@@ -4,8 +4,33 @@
 #include <iomanip>            //fixed & setprecision
 #include "client.h"
 #include "../core/telemetry.h"
+#include <cstdlib>            //system command
 
 using namespace std;
+
+//gemini was used in order to properly implement automatic "find user's interface" function
+string Client::find_active_interface() {
+  struct ifaddrs *addrs, *tmp;
+  getifaddrs(&addrs);
+  tmp = addrs;
+
+  string interface_name = "lo"; //default to loopback
+
+  while (tmp) {
+    //loooking for an interface that is UP,has an IP, and is not the loopback (lo)
+    if (tmp->ifa_addr && tmp->ifa_addr->sa_family == AF_INET) {
+    string name = tmp->ifa_name;
+      if (name != "lo") {
+        interface_name = name;
+      break;
+      }
+    }
+  tmp = tmp->ifa_next;
+  }
+
+  freeifaddrs(addrs);
+  return interface_name;
+}
 
 Client::Client(unique_ptr<Transport> t) : transport(move(t)) {}
 
@@ -97,7 +122,32 @@ bool Client::start_transmission(){
 
     // Safety check:  if loop exited without login (e.g., break), return.
     if (!is_logged_in) return false;
+  
+    string interface = find_active_interface();
+    
+    string p_drop_ans;
+    string p_drop_cmnd_start;
+    string p_drop_cmnd_stop;
+    bool was_here_already = false;
+    cout << "Provide packet drop value [%]: ";
+    cin >> p_drop_ans;
+    int p_drop_val = stoi(p_drop_ans);
+    if(p_drop_val >= 100){
+      p_drop_val = 100;
+      was_here_already = true;
+    }else if(p_drop_val <= 0){
+      p_drop_val = 0;
+      was_here_already = true;
+    }
+    
+    if(was_here_already){   //if there is an attempt to remove something that does not exist, there will be an error
+      p_drop_cmnd_stop = ("sudo tc qdisc del dev " + interface + " root");  //deleting the changes made via command
+      system(p_drop_cmnd_stop.c_str());                          //yes, network intereface type forced here.
+    }
+    p_drop_cmnd_start = ("sudo tc qdisc add dev " + interface + " root netem loss " + to_string(p_drop_val) + "%");
+    system(p_drop_cmnd_start.c_str());
 
+    
 	// Gemini 3 Pro was used to help implement background traffic  generation.
     // --- BACKGROUND TRAFFIC SECTION ---
     
@@ -115,7 +165,7 @@ bool Client::start_transmission(){
             bg_traffic.start(1400, 0); 
         }
     }
-
+  
     while(true){ 
         string input;
         cout << "\nEnter the message (or type q to quit): \n";
@@ -176,6 +226,8 @@ bool Client::start_transmission(){
     }
 
     bg_traffic.stop();
+    p_drop_cmnd_stop = ("sudo tc qdisc del dev enp0s3 root");  //deleting the changes (if leaving the program completely)
+    system(p_drop_cmnd_stop.c_str());
     return true;
 }
 
