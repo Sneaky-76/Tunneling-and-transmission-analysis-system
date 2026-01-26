@@ -51,7 +51,8 @@ sudo ./clientSide <server_ip4> <protocol>
 tcp, udp or sctp is supported
 
 1. Authentication: Upon start, a menu is displayed. Choose option 2 to Register (if new) or 1 to Login.
-2. Background Traffic: After successful login, a prompt to activate the background traffic generator is shown (confirm with <y/n>).
+2. Background Traffic: After successful login, a prompt to activate the background traffic generator is shown (confirm with <y/n>)
+   alongside with packet loss simulation tool prompt accepting values from 0 to 100 [%].
 3. Messaging: Enter messages to send them to the server. Type 'q' to quit the application.
 
 ###Notes:
