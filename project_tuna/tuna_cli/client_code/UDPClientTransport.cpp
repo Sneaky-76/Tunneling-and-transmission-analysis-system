@@ -78,7 +78,7 @@ bool UDPClientTransport::connectTo(const string &addr, uint16_t port){
       data.resize(1500);
 
       // CRITICAL FIX: Removed MSG_DONTWAIT so it waits for the timeout period
-      ssize_t recvdBytes = ::recv(this->sockfd, data.data(), data.size(), 0); 
+      ssize_t recvdBytes = ::recv(this->sockfd, data.data(), data.size(), MSG_DONTWAIT); 
 
       if(recvdBytes > 0) {
         data.resize(recvdBytes);
@@ -162,13 +162,12 @@ void UDPClientTransport::telemetry_update() {
     this->stats.packet_loss = 1.0 - (static_cast<double>(recvd_long_term) / static_cast<double>(sent_long_term));
   }
 
-
     //throughput calulations  (all bytes sent in that particular measurent)
     long long bytes_diff = stats.total_bytes_sent - stats.last_total_bytes;
     this->stats.throughput_kbps = (bytes_diff * 8.0 / 1000.0) / seconds;    //dividing by 1000 because of kilo- (bytes)
 
     //goodput calculattion  (throughput - loss)
-    this->stats.goodput_kbps = this->stats.throughput_kbps * (1.0 - this->stats.packet_loss);
+    this->stats.goodput_kbps = this->stats.throughput_kbps * (1.0- this->stats.packet_loss);
 
     //everything back to "idle" from the new message perspective
     this->stats.last_check_time = now;
