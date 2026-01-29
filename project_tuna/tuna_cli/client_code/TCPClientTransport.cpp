@@ -98,6 +98,13 @@ bool TCPClientTransport::connectTo(const string& addr, uint16_t port){
 		perror("Connect error: ");
 		return 0;
 	}
+
+	//removing Nagle’s algorithm (no additional waiting while sending small packets)
+	int enable = 1;
+    if (setsockopt(sockfd, IPPROTO_TCP, TCP_NODELAY, &enable, sizeof(enable)) < 0) {
+        perror("[TCP] Warning: Could not set TCP_NODELAY");
+    }
+	
 	return 1;
 }
 
